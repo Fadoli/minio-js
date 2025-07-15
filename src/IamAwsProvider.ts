@@ -27,8 +27,8 @@ interface EcsCredentials {
   SecretAccessKey: string
   Token: string
   Expiration: string
-  Code: string
-  Message: string
+  Code?: string
+  Message?: string
 }
 
 export interface IamAwsProviderOptions {
@@ -73,6 +73,10 @@ export class IamAwsProvider extends CredentialProvider {
       // try with IAM role for EC2 instances (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html)
       let tokenHeader = 'Authorization'
       let token = process.env.AWS_CONTAINER_AUTHORIZATION_TOKEN
+      // Support for AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE (https://docs.aws.amazon.com/sdkref/latest/guide/feature-container-credentials.html)
+      if (!token && process.env.AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE) {
+        token = await fs.readFile(process.env.AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE, { encoding: 'utf8' });
+      }
       const relativeUri = process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
       const fullUri = process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI
       let url: URL
@@ -209,7 +213,8 @@ export class IamAwsProvider extends CredentialProvider {
     const res = await request(transport, requestOptions, null)
     const body = await readAsString(res)
     const ecsCredentials = JSON.parse(body) as EcsCredentials
-    if (!ecsCredentials.Code || ecsCredentials.Code != 'Success') {
+    // Code field seems to be optional in case of EKS deployments, but if present, it should be 'Success'
+    if (ecsCredentials.Code && ecsCredentials.Code !== 'Success') {
       throw new Error(`${url} failed with code ${ecsCredentials.Code} and message ${ecsCredentials.Message}`)
     }
 
