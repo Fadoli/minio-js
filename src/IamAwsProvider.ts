@@ -23,7 +23,9 @@ interface AssumeRoleResponse {
 }
 
 interface EcsCredentials {
-  AccessKeyID: string
+  // Not sure which one is correct, the AccessKeyID was previously coded, in my testing it was AccessKeyId
+  AccessKeyID?: string
+  AccessKeyId?: string
   SecretAccessKey: string
   Token: string
   Expiration: string
@@ -220,7 +222,7 @@ export class IamAwsProvider extends CredentialProvider {
 
     this.accessExpiresAt = ecsCredentials.Expiration
     return new Credentials({
-      accessKey: ecsCredentials.AccessKeyID,
+      accessKey: ecsCredentials.AccessKeyID || ecsCredentials.AccessKeyId,
       secretKey: ecsCredentials.SecretAccessKey,
       sessionToken: ecsCredentials.Token,
     })
